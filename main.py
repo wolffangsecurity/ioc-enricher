@@ -247,7 +247,7 @@ def display_results(ioc: str, ioc_type: str, vt: dict, abuse: dict, shodan: dict
 
 # ── JSON Export ───────────────────────────────────────────────────────────────
 
-def export_json(ioc: str, ioc_type: str, vt: dict, abuse: dict, shodan: dict, composite: int, output_path: str):
+def export_json(ioc: str, ioc_type: str, vt: dict, abuse: dict, shodan: dict,  output_path: str):
     payload = {
         "timestamp":        datetime.utcnow().isoformat() + "Z",
         "ioc":              ioc,
