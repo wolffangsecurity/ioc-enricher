@@ -167,7 +167,10 @@ async def query_shodan(session: aiohttp.ClientSession, ioc: str, ioc_type: str) 
 
 # ── Display ───────────────────────────────────────────────────────────────────
 
-def display_results(ioc: str, ioc_type: str, vt: dict, abuse: dict, shodan: dict):
+def display_results(ioc: str, ioc_type: str, vt: dict, abuse: dict, shodan: dict, silent: bool = False):
+    if silent:
+        console.print(f"[dim]✓ {ioc} — enrichment complete[/dim]")
+        return
     console.print()
     console.print(Panel(
         f"[bold white]IOC:[/bold white]  {ioc}\n"
@@ -267,26 +270,39 @@ async def main():
     parser = argparse.ArgumentParser(
         description="Async IOC Enrichment Tool — VirusTotal + AbuseIPDB + Shodan"
     )
-    parser.add_argument("ioc",    help="IP address or domain name to investigate")
+    parser.add_argument("ioc",    help="IP address or domain name to investigate", nargs="?")
+    parser.add_argument("--file", help="Path to file with one IOC per line", metavar="FILE")
     parser.add_argument("--json", help="Export results to this JSON file path", metavar="FILE")
+    parser.add_argument("--silent", action="store_true", help="Suppress terminal output, useful for bulk scanning or JSON export")
+
     args = parser.parse_args()
 
-    ioc      = args.ioc.strip()
-    ioc_type = "ip" if is_ip(ioc) else "domain"
-
-    console.print(f"\n[cyan]Querying intelligence sources for[/cyan] [bold]{ioc}[/bold] [dim]({ioc_type})[/dim]...")
+    iocs = []
+    if args.file:
+        with open(args.file, "r") as f:
+            iocs = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    elif args.ioc:
+        iocs = [args.ioc.strip()]
+    else:
+        parser.error("Provide an IOC or use --file")
 
     async with aiohttp.ClientSession() as session:
-        vt_task    = query_virustotal(session, ioc, ioc_type)
-        abuse_task = query_abuseipdb(session, ioc, ioc_type)
-        shodan_task = query_shodan(session, ioc, ioc_type)
+        for ioc in iocs:
+            ioc_type = "ip" if is_ip(ioc) else "domain"
+            console.print(f"\n[cyan]Querying intelligence sources for[/cyan] [bold]{ioc}[/bold] [dim]({ioc_type})[/dim]...")
 
-        vt, abuse, shodan = await asyncio.gather(vt_task, abuse_task, shodan_task)
+            vt, abuse, shodan = await asyncio.gather(
+                query_virustotal(session, ioc, ioc_type),
+                query_abuseipdb(session, ioc, ioc_type),
+                query_shodan(session, ioc, ioc_type),
+            )
 
-    display_results(ioc, ioc_type, vt, abuse, shodan)
+            display_results(ioc, ioc_type, vt, abuse, shodan, silent=args.silent)
 
-    if args.json:
-        export_json(ioc, ioc_type, vt, abuse, shodan, args.json)
+            if args.json:
+                base, ext = os.path.splitext(args.json)
+                out_path = f"{base}_{ioc.replace('.', '_')}{ext}" if len(iocs) > 1 else args.json
+                export_json(ioc, ioc_type, vt, abuse, shodan, out_path)
 
 
 if __name__ == "__main__":
