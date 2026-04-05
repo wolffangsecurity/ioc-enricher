@@ -7,10 +7,10 @@ Python threat intelligence tool that queries **VirusTotal**, **AbuseIPDB**, and 
   
 ```  
 ioc-enricher/  
-├── main.py            # Main script  
-├── requirements.txt   # Python dependencies  
-├── Dockerfile         # Container definition  
-└── .env.example       # API key template  
+├── main.py           
+├── requirements.txt   
+├── Dockerfile        
+└── .env.example      
 ```
 ## Usage  
   
@@ -20,9 +20,12 @@ usage: main.py [-h] [--json FILE] ioc
 positional arguments:  
   ioc          IP address or domain name to investigate  
   
-options:  
-  -h, --help   show this help message and exit  
-  --json FILE  Export results to a JSON file  
+options:
+  -h, --help   show this help message and exit
+  --file FILE  Path to file with one IOC per line
+  --json FILE  Export results to this JSON file path
+  --silent     Suppress terminal output, useful for bulk scanning or JSON export
+
 ```  
   
 ---  
